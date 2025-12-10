@@ -31,6 +31,13 @@ vi.mock('@podman-desktop/api', async () => {
   };
 });
 
+vi.mock('./util.js', async () => {
+  return {
+    isWindows: () => false,
+    productName: 'OpenShift',
+  };
+});
+
 test('setUpCRC is skipped if already setup, it just perform the daemon start command', async () => {
   vi.spyOn(crcCli, 'execPromise').mockResolvedValue('');
   vi.spyOn(logProvider.crcLogProvider, 'startSendingLogs').mockImplementation(() => {

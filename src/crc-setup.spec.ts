@@ -16,9 +16,20 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi, beforeEach } from 'vitest';
 import * as crcCli from './crc-cli.js';
 import { needSetup } from './crc-setup.js';
+
+vi.mock('./util.js', async () => {
+  return {  
+    isWindows: () => false,
+    productName: 'OpenShift',
+  };
+});
+
+beforeEach(() => {
+  vi.restoreAllMocks();
+});
 
 test('needSetup should return true if setup --check-only command fails', async () => {
   vi.spyOn(crcCli, 'execPromise').mockRejectedValue('daemon not running');

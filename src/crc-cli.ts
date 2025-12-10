@@ -132,16 +132,54 @@ export async function getCrcVersion(): Promise<CrcVersion | undefined> {
   return undefined;
 }
 
-export async function getPreset(): Promise<Preset | undefined> {
+export async function getConfigValue(key: string): Promise<string | undefined> {
   try {
-    const presetOut = await execPromise(getCrcCli(), ['config', 'get', 'preset']);
-    if (presetOut) {
-      const splitArr = presetOut.split(':');
-      return splitArr[1].trim() as Preset;
+    const out = await execPromise(getCrcCli(), ['config', 'get', key]);
+    if (out) {
+      const splitArr = out.split(':');
+      if (splitArr.length > 1) {
+        return splitArr[1].trim().toLowerCase();
+      }
+      return out.trim().toLowerCase();
     }
-  } catch (err) {
-    // no crc binary or we cant parse output
+  } catch {
+    // ignore read failures
   }
-
   return undefined;
+}
+
+export async function getConfigBoolean(key: string, defaultValue: boolean = false): Promise<boolean> {
+  const value = await getConfigValue(key);
+  if (value === 'true') {
+    return true;
+  }
+  if (value === 'false') {
+    return false;
+  }
+  return defaultValue;
+}
+
+export async function getPreset(): Promise<Preset | undefined> {
+  const value = await getConfigValue('preset');
+  if (value === 'microshift' || value === 'openshift' || value === 'podman') {
+    return value as Preset;
+  }
+  return undefined;
+}
+
+export async function enableSkipAdministratorCheckBypass(): Promise<() => Promise<void>> {
+  // On Windows, disable the administrator user check to allow the extension to run elevated.
+  // This is only valid on Windows. On other platforms, the check is called 'skip-check-root-user'.
+  if (!isWindows()) return async () => {};
+
+  const prev = await getConfigBoolean('skip-check-administrator-user');
+  const changed = prev !== true;
+  if (changed) {
+    await execPromise(getCrcCli(), ['config', 'set', 'skip-check-administrator-user', 'true']);
+  }
+  return async () => {
+    if (changed) {
+      await execPromise(getCrcCli(), ['config', 'set', 'skip-check-administrator-user', 'false']);
+    }
+  };
 }

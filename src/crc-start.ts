@@ -23,6 +23,7 @@ import { commander } from './daemon-commander.js';
 import { crcLogProvider } from './log-provider.js';
 import { productName } from './util.js';
 import { AccountManagementClient } from '@redhat-developer/rhaccm-client';
+import { enableSkipAdministratorCheckBypass } from './crc-cli.js';
 
 interface ImagePullSecret {
   auths: Auths;
@@ -43,6 +44,7 @@ export async function startCrc(
   telemetryLogger.logUsage('crc.start', {
     preset: crcStatus.status.Preset,
   });
+  const restoreSkipAdministratorCheckBypass = await enableSkipAdministratorCheckBypass();
   try {
     // call crc setup to prepare bundle, before start
     const isNeedSetup = await needSetup();
@@ -87,6 +89,8 @@ export async function startCrc(
     await extensionApi.window.showErrorMessage(`${productName} start error: ${err}`);
     console.error(err);
     provider.updateStatus('stopped');
+  } finally {
+    await restoreSkipAdministratorCheckBypass();
   }
   return false;
 }

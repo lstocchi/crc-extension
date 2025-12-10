@@ -17,21 +17,25 @@
  ***********************************************************************/
 
 import * as extensionApi from '@podman-desktop/api';
-import { execPromise, getCrcCli } from './crc-cli.js';
+import { enableSkipAdministratorCheckBypass, execPromise, getCrcCli } from './crc-cli.js';
 import { productName } from './util.js';
 
 export async function needSetup(): Promise<boolean> {
+  const restoreSkipAdministratorCheckBypass = await enableSkipAdministratorCheckBypass();
   try {
     await execPromise(getCrcCli(), ['setup', '--check-only']);
     return false;
   } catch (e) {
     return true;
+  } finally {
+    await restoreSkipAdministratorCheckBypass();
   }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function setUpCrc(logger: extensionApi.Logger): Promise<boolean> {
   const setupBar = extensionApi.window.createStatusBarItem('RIGHT', 2000);
+  const restoreSkipAdministratorCheckBypass = await enableSkipAdministratorCheckBypass();
   try {
     setupBar.text = `Configuring ${productName}...`;
     setupBar.show();
@@ -76,6 +80,7 @@ export async function setUpCrc(logger: extensionApi.Logger): Promise<boolean> {
   } finally {
     setupBar.hide();
     setupBar.dispose();
+    await restoreSkipAdministratorCheckBypass();
   }
 
   return true;
